@@ -1,0 +1,41 @@
+name: django-celery-app Deploy to AWS ec2
+
+on:
+  push:
+    branches: [ "master" ]
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-south-1
+  APPLICATION_NAME: django-app
+  DEPLOYMENT_GROUP_WEB: django-web-dg
+  DEPLOYMENT_GROUP_CELERY: django-celery-dg
+  S3_BUCKET: django-artifact-731049002337-ap-south-1-an
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Update deployment timestamp
+      run: |
+        echo "// Updating timestamp for deployment on $(date)" >> js/script.js
+        echo "// Deployment ID: ${{ github.run_id }}" >> js/script.js
+
+    - name: Configure AWS credentials via OIDC
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.IAMROLE_GITHUB }}
+        role-session-name: GitHub-Action-Role-${{ github.run_id }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Verify Identity
+      run: aws sts get-caller-identity
