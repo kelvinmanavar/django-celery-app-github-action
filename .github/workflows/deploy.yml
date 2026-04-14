@@ -27,8 +27,7 @@ jobs:
 
     - name: Update deployment timestamp
       run: |
-        echo "// Updating timestamp for deployment on $(date)" >> js/script.js
-        echo "// Deployment ID: ${{ github.run_id }}" >> js/script.js
+        echo "// Updating timestamp for deployment on $(date)"
 
     - name: Configure AWS credentials via OIDC
       uses: aws-actions/configure-aws-credentials@v5
