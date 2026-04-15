@@ -14,6 +14,7 @@ env:
   DEPLOYMENT_GROUP_WEB: django-web-dg
   DEPLOYMENT_GROUP_CELERY: django-celery-dg
   S3_BUCKET: django-artifact-731049002337-ap-south-1-an
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   deploy:
