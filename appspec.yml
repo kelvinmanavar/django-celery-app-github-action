@@ -1,0 +1,13 @@
+version: 0.0
+os: linux
+
+files:
+  - source: /
+    destination: /home/django/app
+
+hooks:
+  AfterInstall:
+    - location: scripts/install.sh
+
+  ApplicationStart:
+    - location: scripts/start.sh

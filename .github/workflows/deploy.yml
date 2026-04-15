@@ -38,3 +38,29 @@ jobs:
 
     - name: Verify Identity
       run: aws sts get-caller-identity
+    
+    - name: Create Deployment Artifact
+      run: |
+        zip -r app.zip . \
+        -x "*.git*" \
+          "venv/*" \
+          "__pycache__/*" \
+          "*.pyc"
+    
+    - name: Upload to S3
+      run: |
+        aws s3 cp app.zip s3://django-artifact-731049002337-ap-south-1-an/app.zip
+    
+    - name: Deploy to Web ASG
+      run: |
+        aws deploy create-deployment \
+          --application-name $APPLICATION_NAME \
+          --deployment-group-name $DEPLOYMENT_GROUP_WEB \
+          --s3-location bucket=${{ env.S3_BUCKET }},key=app.zip,bundleType=zip
+    
+    - name: Deploy to Celery ASG
+      run: |
+        aws deploy create-deployment \
+          --application-name $APPLICATION_NAME \
+          --deployment-group-name $DEPLOYMENT_GROUP_CELERY \
+          --s3-location bucket=${{ env.S3_BUCKET }},key=app.zip,bundleType=zip
