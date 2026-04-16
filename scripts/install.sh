@@ -1,23 +1,29 @@
 #!/bin/bash
 set -e
 
-echo "===== Setting permissions ====="
+echo "===== Fix ownership ====="
 chown -R django:django /home/django/app
 
 cd /home/django/app
 
-echo "===== Creating virtualenv ====="
-python3 -m venv venv
+# --------------------------------------------------
+echo "===== Ensure virtualenv exists ====="
 
-echo "===== Activating venv ====="
-source venv/bin/activate
+if [ ! -d "/home/django/venv" ]; then
+    echo "Creating virtualenv..."
+    sudo -u django python3 -m venv /home/django/venv
+fi
 
-echo "===== Installing dependencies ====="
+# --------------------------------------------------
+echo "===== Activate virtualenv ====="
+source /home/django/venv/bin/activate
+
+# --------------------------------------------------
+echo "===== Install dependencies ====="
 pip install --upgrade pip
-pip install -r requirements.txt
+pip install --no-cache-dir -r requirements.txt
 
-echo "===== Running migrations ====="
+# --------------------------------------------------
+echo "===== Django setup ====="
 python manage.py migrate
-
-echo "===== Collecting static ====="
 python manage.py collectstatic --noinput

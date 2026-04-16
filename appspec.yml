@@ -7,7 +7,11 @@ files:
 
 hooks:
   AfterInstall:
+    - location: scripts/create_env.sh
     - location: scripts/install.sh
 
   ApplicationStart:
     - location: scripts/start.sh
+
+  ValidateService:
+    - location: scripts/validate.sh
