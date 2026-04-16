@@ -11,19 +11,14 @@ echo "===== Ensure virtualenv exists ====="
 
 if [ ! -d "/home/django/venv" ]; then
     echo "Creating virtualenv..."
-    sudo -u django python3 -m venv /home/django/venv
+    sudo -u django python3.9 -m venv /home/django/venv
 fi
 
-# --------------------------------------------------
-echo "===== Activate virtualenv ====="
-source /home/django/venv/bin/activate
-
-# --------------------------------------------------
-echo "===== Install dependencies ====="
-pip install --upgrade pip
-pip install --no-cache-dir -r requirements.txt
+sudo -u django /home/django/venv/bin/pip install --upgrade pip
+sudo -u django /home/django/venv/bin/pip install --no-cache-dir -r requirements.txt
 
 # --------------------------------------------------
 echo "===== Django setup ====="
-python manage.py migrate
-python manage.py collectstatic --noinput
+
+sudo -u django /home/django/venv/bin/python manage.py migrate
+sudo -u django /home/django/venv/bin/python manage.py collectstatic --noinput
