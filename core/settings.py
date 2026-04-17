@@ -188,6 +188,6 @@ CELERY_RESULT_EXPIRES     = 60*60*24*30 # Results expire after 1 month
 CELERY_ACCEPT_CONTENT     = ["json"]
 CELERY_TASK_SERIALIZER    = 'json'
 CELERY_RESULT_SERIALIZER  = 'json'
-
+CELERY_BROKER_USE_SSL = {'ssl_cert_reqs': None}
 #############################################################
 #############################################################
