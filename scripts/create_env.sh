@@ -18,19 +18,19 @@ get_param() {
 cat <<EOT > $ENV_FILE
 DEBUG=False
 
-ALLOWED_HOSTS=$(get_param ALLOWED_HOSTS)
-CSRF_TRUSTED_ORIGINS=$(get_param CSRF_TRUSTED_ORIGINS)
+ALLOWED_HOSTS=$(get_param /djangoproject/ALLOWED_HOSTS)
+CSRF_TRUSTED_ORIGINS=$(get_param /djangoproject/CSRF_TRUSTED_ORIGINS)
 
-SECRET_KEY=$(get_param SECRET_KEY)
+SECRET_KEY=$(get_param /djangoproject/SECRET_KEY)
 
 DB_ENGINE=postgres
-DB_NAME=$(get_param DB_NAME)
-DB_USERNAME=$(get_param DB_USERNAME)
-DB_PASS=$(get_param DB_PASS)
-DB_HOST=$(get_param DB_HOST)
+DB_NAME=$(get_param /djangoproject/DB_NAME)
+DB_USERNAME=$(get_param /djangoproject/DB_USERNAME)
+DB_PASS=$(get_param /djangoproject/DB_PASS)
+DB_HOST=$(get_param /djangoproject/DB_HOST)
 DB_PORT=5432
 
-CELERY_BROKER=$(get_param CELERY_BROKER)
+CELERY_BROKER=$(get_param /djangoproject/CELERY_BROKER)
 EOT
 
 chmod 600 $ENV_FILE
