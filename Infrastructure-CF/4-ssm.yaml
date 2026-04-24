@@ -1,0 +1,92 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'SSM Tier: SSM Parameters for App Configuration'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+  AllowedHosts:
+    Type: String
+  CsrfTrustedOrigins:
+    Type: String
+  SecretKey:
+    Type: String
+    NoEcho: true
+  DbName:
+    Type: String
+  DbUsername:
+    Type: String
+  DbPass:
+    Type: String
+    NoEcho: true
+  DbHost:
+    Type: String
+  CeleryBroker:
+    Type: String
+  InitialGoldenAmiId:
+    Type: String
+    Description: The starting AMI ID to bootstrap the environment
+
+Resources:
+  SSMAllowedHosts:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${EnvironmentName}/ALLOWED_HOSTS"
+      Type: String
+      Value: !Ref AllowedHosts
+
+  SSMCsrfTrustedOrigins:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${EnvironmentName}/CSRF_TRUSTED_ORIGINS"
+      Type: String
+      Value: !Ref CsrfTrustedOrigins
+
+  SSMSecretKey:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${EnvironmentName}/SECRET_KEY"
+      Type: String
+      Value: !Ref SecretKey
+
+  SSMDbName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${EnvironmentName}/DB_NAME"
+      Type: String
+      Value: !Ref DbName
+
+  SSMDbUsername:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${EnvironmentName}/DB_USERNAME"
+      Type: String
+      Value: !Ref DbUsername
+
+  SSMDbPass:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${EnvironmentName}/DB_PASS"
+      Type: String
+      Value: !Ref DbPass
+
+  SSMDbHost:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${EnvironmentName}/DB_HOST"
+      Type: String
+      Value: !Ref DbHost
+
+  SSMCeleryBroker:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${EnvironmentName}/CELERY_BROKER"
+      Type: String
+      Value: !Ref CeleryBroker
+
+  SSMGoldenAmiId:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${EnvironmentName}/GOLDEN_AMI_ID"
+      Type: String
+      Value: !Ref InitialGoldenAmiId
+      Description: Stores the latest Golden AMI ID for Web and Celery ASGs

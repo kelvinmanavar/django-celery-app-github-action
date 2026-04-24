@@ -1,0 +1,124 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Data Tier: RDS PostgreSQL & ElastiCache Redis'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  IsolatedDbSubnets:
+    Type: List<AWS::EC2::Subnet::Id>
+  # VpcCidr:
+  #   Type: String
+  #   Default: '10.0.0.0/16'
+  #   Description: CIDR block of the VPC to allow internal access
+  DbName:
+    Type: String
+  DbUsername:
+    Type: String
+  DbPass:
+    Type: String
+    NoEcho: true
+
+Resources:
+# ---------------------------------------------------------
+# SECURITY GROUP
+# ---------------------------------------------------------
+  PostgresSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Isolated security group for Postgres RDS
+      VpcId: !Ref VpcId
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-Postgres-SG
+
+  RedisSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Isolated security group for Redis ElastiCache
+      VpcId: !Ref VpcId
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-Redis-SG
+
+  # DataSecurityGroup:
+  #   Type: AWS::EC2::SecurityGroup
+  #   Properties:
+  #     GroupDescription: Allow internal VPC traffic to Postgres and Redis
+  #     VpcId: !Ref VpcId
+  #     SecurityGroupIngress:
+  #       - IpProtocol: tcp
+  #         FromPort: 5432
+  #         ToPort: 5432
+  #         CidrIp: !Ref VpcCidr
+  #         Description: Allow Postgres access from within VPC
+  #       - IpProtocol: tcp
+  #         FromPort: 6379
+  #         ToPort: 6379
+  #         CidrIp: !Ref VpcCidr
+  #         Description: Allow Redis access from within VPC
+  #     Tags:
+  #       - Key: Name
+  #         Value: !Sub ${EnvironmentName}-Data-SG
+
+# ---------------------------------------------------------
+# RDS POSTGRESQL (Free Tier Eligible)
+# ---------------------------------------------------------
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for RDS
+      SubnetIds: !Ref IsolatedDbSubnets
+
+  PostgresDB:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBName: !Ref DbName
+      Engine: postgres
+      EngineVersion: '15' # You can adjust to your preferred version
+      DBInstanceClass: db.t3.micro # Free-tier eligible
+      AllocatedStorage: 20
+      StorageType: gp2
+      MasterUsername: !Ref DbUsername
+      MasterUserPassword: !Ref DbPass
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups:
+        - !Ref PostgresSecurityGroup
+      PubliclyAccessible: false
+      MultiAZ: false # Kept false to stay strictly within free tier
+      StorageEncrypted: true
+      DeletionProtection: false # Set to true in real production
+
+# ---------------------------------------------------------
+# ELASTICACHE REDIS (Free Tier Eligible)
+# ---------------------------------------------------------
+  CacheSubnetGroup:
+    Type: AWS::ElastiCache::SubnetGroup
+    Properties:
+      Description: Subnet group for Redis
+      SubnetIds: !Ref IsolatedDbSubnets
+
+  RedisCache:
+    Type: AWS::ElastiCache::CacheCluster
+    Properties:
+      Engine: redis
+      CacheNodeType: cache.t3.micro # Free-tier eligible
+      NumCacheNodes: 1
+      CacheSubnetGroupName: !Ref CacheSubnetGroup
+      VpcSecurityGroupIds:
+        - !Ref RedisSecurityGroup
+
+Outputs:
+  PostgresEndpoint:
+    Description: Connection endpoint for RDS PostgreSQL
+    Value: !GetAtt PostgresDB.Endpoint.Address
+  RedisEndpoint:
+    Description: Connection endpoint for ElastiCache Redis
+    Value: !GetAtt RedisCache.RedisEndpoint.Address
+  PostgresSecurityGroupId:
+    Description: SG ID to be passed to the App Deploy Stack
+    Value: !Ref PostgresSecurityGroup
+  RedisSecurityGroupId:
+    Description: SG ID to be passed to the App Deploy Stack
+    Value: !Ref RedisSecurityGroup

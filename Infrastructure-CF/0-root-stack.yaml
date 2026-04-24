@@ -1,0 +1,97 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Root Stack - Multi-AZ 3-Tier Architecture'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: djangoproject
+  TemplateS3BucketUrl:
+    Type: String
+    Description: Base URL to the S3 bucket where child templates are stored (e.g., https://my-cfn-bucket.s3.ap-south-1.amazonaws.com)
+  InitialGoldenAmiId:
+    Type: String
+    Description: Your custom Golden AMI ID in ap-south-1 (e.g., ami-0abcdef1234567890)
+
+  # GoldenAmiSSMPath:
+  #   Type: String
+  #   Description: SSM path where your Golden AMI is stored (e.g., /app/golden-ami)
+  
+  # App Config Parameters
+  AppAllowedHosts: { Type: String, Default: "*" }
+  AppCsrfTrustedOrigins: { Type: String, Default: "https://my-app.com" }
+  AppSecretKey: { Type: String, NoEcho: true }
+  AppDbName: { Type: String, Default: "django_db" }
+  AppDbUsername: { Type: String, Default: "db_admin" }
+  AppDbPass: { Type: String, NoEcho: true }
+  # AppDbHost: { Type: String, Default: "rds-endpoint.amazonaws.com" }
+  # AppCeleryBroker: { Type: String, Default: "redis://redis-endpoint:6379/0" }
+
+Resources:
+  NetworkStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateS3BucketUrl}/1-vpc.yaml"
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+
+  S3Stack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateS3BucketUrl}/2-s3.yaml"
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+
+  DataTierStack:
+      Type: AWS::CloudFormation::Stack
+      DependsOn: NetworkStack
+      Properties:
+        TemplateURL: !Sub "${TemplateS3BucketUrl}/3-data-tier.yaml"
+        Parameters:
+          EnvironmentName: !Ref EnvironmentName
+          VpcId: !GetAtt NetworkStack.Outputs.VpcId
+          IsolatedDbSubnets: !GetAtt NetworkStack.Outputs.IsolatedDbSubnets
+          DbName: !Ref AppDbName
+          DbUsername: !Ref AppDbUsername
+          DbPass: !Ref AppDbPass
+
+  SSMStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateS3BucketUrl}/4-ssm.yaml"
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        AllowedHosts: !Ref AppAllowedHosts
+        CsrfTrustedOrigins: !Ref AppCsrfTrustedOrigins
+        SecretKey: !Ref AppSecretKey
+        DbName: !Ref AppDbName
+        DbUsername: !Ref AppDbUsername
+        DbPass: !Ref AppDbPass
+        DbHost: !GetAtt DataTierStack.Outputs.PostgresEndpoint
+        CeleryBroker: !Sub "redis://${DataTierStack.Outputs.RedisEndpoint}:6379/0"
+        InitialGoldenAmiId: !Ref InitialGoldenAmiId
+
+  # AppDeployStack:
+  #   Type: AWS::CloudFormation::Stack
+  #   DependsOn: NetworkStack
+  #   Properties:
+  #     TemplateURL: !Sub "${TemplateS3BucketUrl}/5-app-deploy.yaml"
+  #     Parameters:
+  #       EnvironmentName: !Ref EnvironmentName
+  #       VpcId: !GetAtt NetworkStack.Outputs.VpcId
+  #       PublicSubnets: !GetAtt NetworkStack.Outputs.PublicSubnets
+  #       PrivateSubnets: !GetAtt NetworkStack.Outputs.PrivateSubnets
+  #       GoldenAmiId: !Ref GoldenAmiSSMPath
+
+  AppDeployStack:
+      Type: AWS::CloudFormation::Stack
+      DependsOn: SSMStack
+      Properties:
+        TemplateURL: !Sub "${TemplateS3BucketUrl}/5-app-deploy.yaml"
+        Parameters:
+          EnvironmentName: !Ref EnvironmentName
+          VpcId: !GetAtt NetworkStack.Outputs.VpcId
+          PublicSubnets: !GetAtt NetworkStack.Outputs.PublicSubnets
+          PrivateAppSubnets: !GetAtt NetworkStack.Outputs.PrivateAppSubnets
+          GoldenAmiId: !Sub "/${EnvironmentName}/GOLDEN_AMI_ID"
+          PostgresSecurityGroupId: !GetAtt DataTierStack.Outputs.PostgresSecurityGroupId
+          RedisSecurityGroupId: !GetAtt DataTierStack.Outputs.RedisSecurityGroupId
