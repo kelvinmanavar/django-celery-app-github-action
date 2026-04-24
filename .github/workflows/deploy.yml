@@ -10,10 +10,10 @@ permissions:
 
 env:
   AWS_REGION: ap-south-1
-  APPLICATION_NAME: django-app
-  DEPLOYMENT_GROUP_WEB: django-web-dg
-  DEPLOYMENT_GROUP_CELERY: django-celery-dg
-  S3_BUCKET: django-artifact-731049002337-ap-south-1-an
+  APPLICATION_NAME: djangoproject-DjangoApp
+  DEPLOYMENT_GROUP_WEB: WebDeploymentGroup
+  DEPLOYMENT_GROUP_CELERY: CeleryDeploymentGroup
+  S3_BUCKET: djangoproject-artifacts-731049002337-ap-south-1
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
@@ -49,7 +49,7 @@ jobs:
     
     - name: Upload to S3
       run: |
-        aws s3 cp app.zip s3://django-artifact-731049002337-ap-south-1-an/app.zip
+        aws s3 cp app.zip s3://djangoproject-artifacts-731049002337-ap-south-1/app.zip
     
     - name: Deploy to Web ASG
       run: |
