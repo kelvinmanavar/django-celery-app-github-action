@@ -150,6 +150,7 @@ The project is coded using a simple and intuitive structure presented below:
    |    |-- install.sh
    |    |-- start.sh
    |    |-- validate.sh
+   |
    |-- celery_scripts/
    |    |-- check-db-health.py
    |    |-- check-disk-free.py
