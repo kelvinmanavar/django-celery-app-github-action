@@ -2,7 +2,7 @@
 
 This repository contains the Infrastructure as Code (IaC) and deployment scripts for a scalable, production-ready Django application. The setup utilizes a multi-tier architecture on AWS, automated via CloudFormation nested stacks and GitHub Actions.
 
-# 🏗 Architecture Overview
+## 🏗 Architecture Overview
 
 The infrastructure is deployed in a custom VPC across multiple Availability Zones to ensure high availability and fault tolerance.
 
@@ -34,24 +34,27 @@ The infrastructure is deployed in a custom VPC across multiple Availability Zone
 - **AWS CodeDeploy** for application deployment
 - Secure authentication using **IAM OIDC** (no static credentials)
 
-## 🏗️ Basic Diagram
+### 🗺️ Basic Diagram
 
 ```text
-                       Users
-                        |
-            Application Load Balancer (ALB)
-                        |
-        ---------------------------------------
-        |                                     |
+                         Users
+                           |
+              Application Load Balancer (ALB)
+                           |
+          +----------------+----------------+
+          |                                 |
    EC2 (Django App)                  EC2 (Django App)
-        |      |                        |      |
-        |      +---- ElastiCache (Redis) -------+
-        |            (Message Broker)          |
-        |                   |                  |
-        |            EC2 - Celery Workers            |
-        |            (Background Tasks)        |
-        |                   |                  |
-        +----------- Amazon RDS (Postgres)-----+
+          |                                 |
+          +----------------+----------------+
+                           |
+          +----------------+----------------+
+          |                                 |
+ ElastiCache (Redis)               Amazon RDS (PostgreSQL)
+ (Celery message broker)           (Application database)
+          |                                 |
+          v                                 |
+   EC2 (Celery Workers)                     |
+   (Background tasks)  --------------------+
 ```
 
 ## 🛠 Tech Stack
@@ -90,7 +93,7 @@ We use IAM OIDC to allow GitHub Actions to communicate with AWS without storing 
     - AWS_REGION: e.g., ap-south-1
     - S3_ARTIFACT_BUCKET: Bucket for application revisions.
 
-## 🚀 Deployment Workflow
+### 🔁 Deployment Workflow
 
 1. Code is pushed to GitHub repository
 2. GitHub Actions workflow is triggered
@@ -120,13 +123,7 @@ We use IAM OIDC to allow GitHub Actions to communicate with AWS without storing 
 - Logs are located in to the custom cloudwatch log groups. 
 - Metrics are available in to cloudwatch metrics.
 
-## Video Presentation
-
-https://user-images.githubusercontent.com/51070104/195047490-8de6a109-837f-496e-a832-162aa71aee3a.mp4
-
-<br />
-
-## ✨ Code-base structure
+## ✨ Code-base Structure
 
 The project is coded using a simple and intuitive structure presented below:
 
@@ -134,9 +131,9 @@ The project is coded using a simple and intuitive structure presented below:
 < PROJECT ROOT >
    |-- .github/
    |    |-- workflows/
-   |        |-- deploy.yml
+   |         |-- deploy.yml                 # GitHub Actions CI/CD workflow
    |
-   |-- Infrastructure-CF/
+   |-- Infrastructure-CF/                  # CloudFormation nested stacks
    |    |-- 0-root-stack.yaml
    |    |-- 1-vpc.yaml
    |    |-- 2-s3.yaml
@@ -144,71 +141,63 @@ The project is coded using a simple and intuitive structure presented below:
    |    |-- 4-ssm.yaml
    |    |-- 5-app-deploy.yaml
    |
-   |-- scripts/
+   |-- scripts/                            # CodeDeploy hooks and AMI setup
    |    |-- create_env.sh
    |    |-- goldenAMI.sh
    |    |-- install.sh
    |    |-- start.sh
    |    |-- validate.sh
    |
-   |-- celery_scripts/
+   |-- celery_scripts/                     # Periodic Celery maintenance tasks
    |    |-- check-db-health.py
    |    |-- check-disk-free.py
    |    |-- clean-database.py
    |
-   |-- core/                               # Implements app configuration
-   |    |-- settings.py                    # Defines Global Settings
-   |    |-- wsgi.py                        # Start the app in production
-   |    |-- urls.py                        # Define URLs served by all apps/nodes
-   |    |-- celery.py
+   |-- nginx/
+   |    |-- appseed-app.conf               # Nginx reverse-proxy config
+   |
+   |-- core/                               # App configuration
+   |    |-- settings.py                    # Global settings
+   |    |-- urls.py                        # URLs served by all apps
+   |    |-- celery.py                      # Celery app definition
+   |    |-- wsgi.py                        # Production entry point
    |    |-- asgi.py
    |
    |-- apps/
+   |    |-- tasks/                         # Celery logic
+   |    |    |-- views.py                  # Loads the tasks index page
+   |    |    |-- urls.py                   # Celery routes
    |    |
-   |    |-- tasks/                         # Implements Celery LOGIC
-   |    |    |-- views.py                  # Loads INDEX page for tasks
-   |    |    |-- urls.py                   # Define Celery routes  
+   |    |-- home/                          # Serves HTML pages
+   |    |    |-- views.py                  # Pages for authenticated users
+   |    |    |-- urls.py
    |    |
-   |    |-- home/                          # A simple app that serve HTML files
-   |    |    |-- views.py                  # Serve HTML pages for authenticated users
-   |    |    |-- urls.py                   # Define some super simple routes  
-   |    |
-   |    |-- authentication/                # Handles auth routes (login and register)
-   |    |    |-- urls.py                   # Define authentication routes  
-   |    |    |-- views.py                  # Handles login and registration  
-   |    |    |-- forms.py                  # Define auth forms (login and register) 
+   |    |-- authentication/                # Login and registration
+   |    |    |-- views.py
+   |    |    |-- urls.py
+   |    |    |-- forms.py
    |    |
    |    |-- static/
-   |    |    |-- <css, JS, images>         # CSS files, Javascripts files
+   |    |    |-- assets/                   # CSS, JS, fonts, images
    |    |
-   |    |-- templates/                     # Templates used to render pages
-   |         |-- includes/                 # HTML chunks and components
-   |         |    |-- navigation.html      # Top menu component
-   |         |    |-- sidebar.html         # Sidebar component
-   |         |    |-- footer.html          # App Footer
-   |         |    |-- scripts.html         # Scripts common to all pages
-   |         |
-   |         |-- layouts/                   # Master pages
-   |         |    |-- base-fullscreen.html  # Used by Authentication pages
-   |         |    |-- base.html             # Used by common pages
-   |         |
-   |         |-- accounts/                  # Authentication pages
-   |         |    |-- login.html            # Login page
-   |         |    |-- register.html         # Register page
-   |         |
-   |         |-- home/                      # UI Kit Pages
-   |              |-- index.html            # Index page
-   |              |-- 404-page.html         # 404 page
-   |              |-- *.html                # All other pages
+   |    |-- templates/
+   |         |-- includes/                 # Navigation, sidebar, footer, scripts
+   |         |-- layouts/                  # base.html, base-fullscreen.html, base-rtl.html
+   |         |-- accounts/                 # login.html, register.html
+   |         |-- home/                     # UI kit pages (index, profile, tables, error pages)
+   |         |-- tasks/                    # index.html for the tasks page
    |
-   |-- requirements.txt                     # Development modules - SQLite storage
-   |-- appspec.yml
+   |-- appspec.yml                         # AWS CodeDeploy spec
+   |-- Dockerfile
    |-- docker-compose.yml
-   |-- Dockerfile      
-   |-- .env.example                                 # Inject Configuration via Environment
-   |-- manage.py                            # Start the app - Django default start script
-   |
-   |-- ************************************************************************
+   |-- gunicorn-cfg.py                     # Gunicorn configuration
+   |-- env.sample                          # Sample environment variables
+   |-- manage.py                           # Django management script
+   |-- package.json
+   |-- requirements.txt                    # Python dependencies
+   |-- LOCALSETUP.md                       # Local setup guide
+   |-- CHANGELOG.md
+   |-- LICENSE.md
 ```
 
 <br />
